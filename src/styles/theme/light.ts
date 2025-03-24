@@ -1,7 +1,7 @@
 import { DefaultTheme } from "styled-components";
 
 export const LightMode: DefaultTheme = {
-    bgColor         : "#f5f6fa",
+    bgColor         : "#dfe4ea",
     bgDarkColor     : "#E0E3EB",
     bgHeader        : "#F7FAFC",
     bgWhite         : "#E5E9F0",

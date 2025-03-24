@@ -19,6 +19,7 @@ const SelectWrap = styled.div`
     display: flex;
     gap: 10px;
     align-items: center;
+    flex-wrap: wrap;
     .addCatBtn {
         cursor: pointer;
         width: 32px;

@@ -35,6 +35,7 @@ const StatusGroup = styled.div`
     display: flex;
     gap: 8px;
     margin-bottom: 12px;
+    flex-wrap: wrap;
 `;
 
 const StatusButton = styled.button`
