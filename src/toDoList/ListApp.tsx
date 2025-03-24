@@ -1,4 +1,4 @@
-import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
+import { useRecoilValue, useSetRecoilState } from "recoil";
 import CreateToDo from "./component/createToDo";
 import ToDo from "./component/toDo";
 import { ToDoSelector, ToDoAtom } from "./Recoil";
@@ -50,7 +50,6 @@ function List() {
 
     }, []);
     
-
     return (
         <ToDoBody>
             <Header />

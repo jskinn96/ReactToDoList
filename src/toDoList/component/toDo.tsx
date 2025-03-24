@@ -1,9 +1,11 @@
 import styled from "styled-components";
-import { IToDo, ToDoCatEnum, ToDoCatEnumLabel } from "../Recoil";
+import { CustomCatAtom, IsDelToDoAtom, IToDo, ToDoCatEnum, ToDoCatEnumLabel } from "../Recoil";
 import { setTimestamp } from "../../utils/common";
-import { useSetRecoilState } from "recoil";
+import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
 import { ToDoAtom } from "../Recoil";
 import { useState } from "react";
+import Swal from 'sweetalert2';
+import { ThemeAtom } from "../../recoil";
 
 const Card = styled.li`
     background:   ${({ theme }) => theme.cardBg};
@@ -94,8 +96,11 @@ const ToDo = ({ text, date, category }: IToDo) => {
     const setToDos                      = useSetRecoilState(ToDoAtom);
     const [isEditing, setIsEditing]     = useState(false);
     const [editedTitle, setEditedTitle] = useState(text);
+    const customCat                     = useRecoilValue(CustomCatAtom);
+    const selectTheme                   = useRecoilValue(ThemeAtom);
+    const [isDelToDo, setIsDelToDo]                = useRecoilState(IsDelToDoAtom);
 
-    const setCat = (newCat: ToDoCatEnum) => {
+    const setCat = (newCat: ToDoCatEnum | string) => {
 
         //g 배열 값을 새로운 상수로 민들어 전달...기존 값은 불변성을 유지해야 하기에 새로운 배열을 만들어 전달한다.
         setToDos((toDos) => {
@@ -104,7 +109,7 @@ const ToDo = ({ text, date, category }: IToDo) => {
 
             const beforeToDo    = toDos.slice(0, targetIdx);
             const afterToDo     = toDos.slice(targetIdx + 1);
-            const newToDo       = {text, date, category: newCat as ToDoCatEnum};
+            const newToDo       = {text, date, category: newCat as ToDoCatEnum | string};
             
             const newToDos = [...beforeToDo, newToDo, ...afterToDo];
 
@@ -112,10 +117,21 @@ const ToDo = ({ text, date, category }: IToDo) => {
         });
     }
 
-    const deleteToDo = (date: IToDo['date']) => {
+    const deleteToDo = async (date: IToDo['date']) => {
 
-        if (confirm("Are you sure you want to delete this to-do?"))
-            setToDos((toDos) => toDos.filter(toDo => toDo.date !== date));
+        const confirm = await Swal.fire({
+            title: "Are you sure you want to delete this to-do?",
+            showCancelButton: true,
+            confirmButtonText: "Yes",
+            cancelButtonText: "No",
+            theme: selectTheme,
+        });
+
+        if (confirm.isConfirmed) {
+
+            setToDos(toDos => toDos.filter(toDo => toDo.date !== date));
+            if (!isDelToDo) setIsDelToDo(true);
+        }
     }
 
     const handleEditComplete = () => {
@@ -173,6 +189,19 @@ const ToDo = ({ text, date, category }: IToDo) => {
                                         onClick={() => setCat(val)}
                                     >
                                         {ToDoCatEnumLabel[val]}
+                                    </StatusButton>
+                                )
+                            ))
+                        }
+                        {
+                            customCat.map((cat, idx) => (
+                                category !== cat && (
+                                    <StatusButton
+                                        key={idx}
+                                        value={cat}
+                                        onClick={() => setCat(cat)}
+                                    >
+                                        {cat}
                                     </StatusButton>
                                 )
                             ))

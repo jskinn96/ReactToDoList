@@ -21,7 +21,7 @@ export const ToDoCatEnumLabel: Record<ToDoCatEnum, string> = {
 export interface IToDo {
     text: string;
     date: number;
-    category: ToDoCatEnum;
+    category: ToDoCatEnum | string;
 }
 
 export const ToDoAtom = atom<IToDo[]>({
@@ -29,7 +29,17 @@ export const ToDoAtom = atom<IToDo[]>({
     default: []
 });
 
-export const ToDoCatAtom = atom<ToDoCatEnum>({
+export const ToDoCatAtom = atom<ToDoCatEnum | string>({
     key: "toDoCatAtomKey",
     default: ToDoCatEnum.TO_DO
+});
+
+export const CustomCatAtom = atom<string[]>({
+    key: "CustomCatKey",
+    default: []
+});
+
+export const IsDelToDoAtom = atom<boolean>({
+    key: "IsDelToDoAtomKey",
+    default: false
 });

@@ -3,11 +3,13 @@
  * g 폼 데이터 관리
 */
 import { useForm } from "react-hook-form";
-import { useRecoilState } from "recoil";
-import { ToDoAtom, ToDoCatAtom, ToDoCatEnum, ToDoCatEnumLabel } from "../Recoil/atoms/toDoAtom";
-import { useEffect } from "react";
+import { useRecoilState, useRecoilValue } from "recoil";
+import { ToDoAtom, ToDoCatAtom, ToDoCatEnum, ToDoCatEnumLabel, CustomCatAtom, IsDelToDoAtom } from "../Recoil/atoms/toDoAtom";
+import { useEffect, useState } from "react";
 import styled from "styled-components";
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Trash2 } from 'lucide-react';
+import { ThemeAtom } from "../../recoil";
+import Swal from "sweetalert2";
 
 interface IForm {
     toDo: string;
@@ -16,6 +18,15 @@ interface IForm {
 const SelectWrap = styled.div`
     display: flex;
     gap: 10px;
+    align-items: center;
+    .addCatBtn {
+        cursor: pointer;
+        width: 32px;
+        height: 32px;
+        &:hover {
+            color: ${({theme}) => theme.accentColor};
+        }
+    }
 `;
 
 const HiddenRadio = styled.input`
@@ -45,8 +56,15 @@ const SelectLabel = styled.label<{ $active: boolean }>`
     };
     font-weight: 700;
     transition: 0.3s;
+    position: relative; 
+
     &:hover {
-      opacity: 0.85;
+        opacity: 0.85;
+        color: ${({theme}) => theme.accentColor};
+    }
+    
+    > span {
+        display: ${({$active}) => $active ? 'block' : 'none'};
     }
 `
 
@@ -83,6 +101,19 @@ const AddButton = styled.button`
     }
 `;
 
+const DeleteCatIcon = styled.span`
+    display: none;
+    transition: opacity 0.2s ease;
+    position: absolute;
+    right: 7px;
+    top: 2px;
+
+    &:hover {
+        color: #ff6666;
+    } 
+`;
+
+
 const CreateToDo = () => {
 
     /**
@@ -90,12 +121,16 @@ const CreateToDo = () => {
      * g reset({toDo : ""}); 특정 필드만 리셋
     */
     const {handleSubmit, setValue, register}    = useForm<IForm>();
-    const [toDos, setToDo]                      = useRecoilState(ToDoAtom);
+    const [toDos, setToDos]                     = useRecoilState(ToDoAtom);
     const [toDoCat, setToDoCat]                 = useRecoilState(ToDoCatAtom);
+    const [customCat, setCustomCat]             = useRecoilState(CustomCatAtom);
+    const selectTheme                           = useRecoilValue(ThemeAtom);
+    const isDelToDo                             = useRecoilValue(IsDelToDoAtom);
+    const [isDelCat, setIsDelCat]               = useState(false);
 
     const toDoSubmit = ({ toDo }: IForm) => {
 
-        setToDo(arr => [...arr, {
+        setToDos(arr => [...arr, {
             text: toDo,
             date: Date.now(),
             category: toDoCat,
@@ -104,11 +139,91 @@ const CreateToDo = () => {
         setValue("toDo", "");
     }
 
+    const addCustomCat= async () => {
+
+        const newCatPrompt = await Swal.fire({
+            title: "How should we call it?",
+            input: "text",
+            inputPlaceholder: "Give your new category a name",
+            showCancelButton: true,
+            confirmButtonText: "save",
+            cancelButtonText: "cancel",
+            theme: selectTheme,
+        });
+
+        const newCat = newCatPrompt.value;
+        
+        if (newCat) {
+            
+            if (customCat.includes(newCat)) {
+
+                Swal.fire({
+                    title: `"${newCat}" already exists.`,
+                    text: "Please choose a different name.",
+                    confirmButtonText: 'OK',
+                    theme: selectTheme,
+                 });
+
+            } else setCustomCat(tmpCat => [...tmpCat, newCat]);
+        }
+    };
+
+    const deleteCustomCat = async () => {
+
+        const confirm = await Swal.fire({
+            title: "Are you sure you want to delete this category?",
+            text: "All tasks under this category will be deleted as well",
+            showCancelButton: true,
+            confirmButtonText: "Yes",
+            cancelButtonText: "No",
+            theme: selectTheme,
+        });
+
+        if (confirm.isConfirmed) {
+
+            setToDos(tmpToDos => tmpToDos.filter(val => val.category !== toDoCat));
+            setCustomCat(tmpCats => tmpCats.filter(val => val !== toDoCat));
+            setToDoCat(ToDoCatEnum.TO_DO);
+            if (!isDelCat) setIsDelCat(true);
+        }
+    };
+
     useEffect(() => {
 
-        if (toDos.length > 0) localStorage.setItem('toDosData', JSON.stringify(toDos));
+        if (
+            toDos.length > 0
+            || isDelToDo
+        ) localStorage.setItem('toDosData', JSON.stringify(toDos));
         
     }, [toDos]);
+
+    useEffect(() => {
+
+        if (
+            customCat.length > 0
+            || isDelCat
+        ) localStorage.setItem('customCatData', JSON.stringify(customCat));
+
+    }, [customCat]);
+
+    useEffect(() => {
+
+        const storedCustomCat = localStorage.getItem('customCatData');
+
+        if (storedCustomCat) {
+
+            try {
+
+                const parsedCustomCat = JSON.parse(storedCustomCat);
+                setCustomCat(parsedCustomCat);
+
+            } catch (error) {
+
+                console.error('JSON Parse Error!');
+            }
+        }
+
+    }, []);
 
     return (
         <form 
@@ -142,6 +257,30 @@ const CreateToDo = () => {
                         );
                     })
                 }
+                {
+                    customCat.map((cat, idx) => (
+                        <SelectLabel
+                            key={idx}
+                            $active={toDoCat === cat}
+                        >
+                            <HiddenRadio
+                                type="radio"
+                                name="category"
+                                value={cat}
+                                checked={toDoCat === cat}
+                                onChange={() => setToDoCat(cat as string)}
+                            />
+                            {cat}
+                            <DeleteCatIcon onClick={deleteCustomCat}>
+                                <Trash2 size={16} />
+                            </DeleteCatIcon>
+                        </SelectLabel>
+                    ))
+                }
+                <PlusCircle
+                    className="addCatBtn"
+                    onClick={addCustomCat}
+                />
             </SelectWrap>
             <InputWrap>            
                 <Input 
